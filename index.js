@@ -39,7 +39,7 @@ async function startLocker() {
   async function lockLoop() {
     try {
       const thread = ig.entity.directThread(THREAD_ID);
-      const info = await thread.broadcastText("check"); // dummy action
+      const info = await thread.broadcastText(""); // dummy action
       const currentName = info.thread_title || "";
 
       if (currentName !== LOCKED_NAME) {
