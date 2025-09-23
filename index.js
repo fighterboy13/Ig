@@ -3,11 +3,11 @@ const fs = require("fs");
 const express = require("express");
 
 const ig = new IgApiClient();
-const USERNAME = process.env.IG_USER || "nfyte_r";
-const PASSWORD = process.env.IG_PASS || "g-223344";
+const USERNAME = process.env.IG_USER || "your_username";
+const PASSWORD = process.env.IG_PASS || "your_password";
 
-// Group Info
-const THREAD_ID = "794932516795889"; // apna group thread id
+// 🔑 Yaha apne group ka thread_id daalna hoga (listgroups se milega)
+let THREAD_ID = null;
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 // State variables
@@ -15,7 +15,7 @@ let autoLock = false;
 let autoReply = false;
 let autoReplyMsg = "Owner is offline right now. Will reply later.";
 
-// Express server (Heroku/Render ke liye)
+// Express server
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("✅ Instagram Group Bot is alive!"));
@@ -39,11 +39,11 @@ async function login() {
 
 // Auto lock loop
 async function lockLoop() {
-  if (!autoLock) return;
+  if (!autoLock || !THREAD_ID) return;
   try {
     const thread = ig.entity.directThread(THREAD_ID);
 
-    // Dummy action to fetch info
+    // Dummy broadcast just to trigger fetch
     const info = await thread.broadcastText("check");
     const currentName = info.thread_title || "";
 
@@ -65,6 +65,8 @@ async function startBot() {
 
   setInterval(async () => {
     try {
+      if (!THREAD_ID) return; // jab tak thread id set na ho, skip
+
       // ✅ Fetch messages
       const feed = ig.feed.directThread(THREAD_ID);
       const messages = await feed.items();
@@ -101,6 +103,18 @@ async function startBot() {
         await thread.broadcastText(`✅ Auto-reply message set: "${autoReplyMsg}"`);
       }
 
+      // NEW COMMAND: /listgroups
+      if (text === "/listgroups" && !fromSelf) {
+        const inbox = await ig.feed.directInbox().items();
+        console.log("📋 Available Threads:");
+        inbox.forEach((chat, i) => {
+          console.log(
+            `#${i + 1} → ID: ${chat.thread_id}, Title: ${chat.thread_title}`
+          );
+        });
+        await thread.broadcastText("✅ Groups printed in console logs.");
+      }
+
       // AUTO REPLY when offline
       if (autoReply && !fromSelf) {
         await thread.broadcastText(autoReplyMsg);
@@ -122,4 +136,4 @@ async function startBot() {
 }
 
 startBot();
-    
+        
