@@ -6,7 +6,7 @@ const ig = new IgApiClient();
 const USERNAME = process.env.IG_USER || "your_username";
 const PASSWORD = process.env.IG_PASS || "your_password";
 
-// 🔑 Yaha apne group ka thread_id daalna hoga (listgroups se milega)
+// 🔑 Set your group thread ID here after /listgroups
 let THREAD_ID = null;
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
@@ -37,13 +37,23 @@ async function login() {
   }
 }
 
-// Auto lock loop
+// Auto lock loop with admin check
 async function lockLoop() {
   if (!autoLock || !THREAD_ID) return;
   try {
     const thread = ig.entity.directThread(THREAD_ID);
 
-    // Dummy broadcast just to trigger fetch
+    const threadInfo = await thread.info();
+    const botIsAdmin = threadInfo.users.some(
+      u => u.pk === ig.state.cookieUserId && u.is_admin
+    );
+
+    if (!botIsAdmin) {
+      console.warn("⚠️ Bot is not admin. /lock and /unlock will not work.");
+      return;
+    }
+
+    // Dummy broadcast to fetch current title
     const info = await thread.broadcastText("check");
     const currentName = info.thread_title || "";
 
@@ -65,9 +75,9 @@ async function startBot() {
 
   setInterval(async () => {
     try {
-      if (!THREAD_ID) return; // jab tak thread id set na ho, skip
+      if (!THREAD_ID) return;
 
-      // ✅ Fetch messages
+      // Fetch messages
       const feed = ig.feed.directThread(THREAD_ID);
       const messages = await feed.items();
       if (!messages || messages.length === 0) return;
@@ -82,22 +92,46 @@ async function startBot() {
 
       // COMMANDS
       if (text === "/lock" && !fromSelf) {
-        autoLock = true;
-        await thread.broadcastText("🔒 Group locked.");
-        lockLoop();
+        const threadInfo = await thread.info();
+        const botIsAdmin = threadInfo.users.some(
+          u => u.pk === ig.state.cookieUserId && u.is_admin
+        );
+
+        if (!botIsAdmin) {
+          console.warn("⚠️ Bot is not admin. Cannot execute /lock.");
+          await thread.broadcastText("⚠️ I am not admin. /lock won't work.");
+        } else {
+          autoLock = true;
+          await thread.broadcastText("🔒 Group locked.");
+          lockLoop();
+        }
       }
+
       if (text === "/unlock" && !fromSelf) {
-        autoLock = false;
-        await thread.broadcastText("🔓 Group unlocked. You can change name.");
+        const threadInfo = await thread.info();
+        const botIsAdmin = threadInfo.users.some(
+          u => u.pk === ig.state.cookieUserId && u.is_admin
+        );
+
+        if (!botIsAdmin) {
+          console.warn("⚠️ Bot is not admin. Cannot execute /unlock.");
+          await thread.broadcastText("⚠️ I am not admin. /unlock won't work.");
+        } else {
+          autoLock = false;
+          await thread.broadcastText("🔓 Group unlocked. You can change name.");
+        }
       }
+
       if (text === "/autoreply on" && !fromSelf) {
         autoReply = true;
         await thread.broadcastText("🤖 Auto-reply enabled.");
       }
+
       if (text === "/autoreply off" && !fromSelf) {
         autoReply = false;
         await thread.broadcastText("❌ Auto-reply disabled.");
       }
+
       if (text.startsWith("/setreply ") && !fromSelf) {
         autoReplyMsg = text.replace("/setreply ", "");
         await thread.broadcastText(`✅ Auto-reply message set: "${autoReplyMsg}"`);
@@ -136,4 +170,4 @@ async function startBot() {
 }
 
 startBot();
-        
+          
