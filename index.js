@@ -41,7 +41,7 @@ async function login() {
 async function lockLoop(thread) {
   if (!autoLock) return; // agar lock mode off hai to skip
   try {
-    const info = await thread.broadcastText("ping"); // dummy
+    const info = await thread.info();
     const currentName = info.thread_title || "";
 
     if (currentName !== LOCKED_NAME) {
@@ -50,7 +50,7 @@ async function lockLoop(thread) {
       console.log("🔒 Group name reset successfully.");
     }
   } catch (err) {
-    console.error("❌ Error:", err.message);
+    console.error("❌ Error in lock loop:", err.message);
   }
 
   setTimeout(() => lockLoop(thread), 5000);
@@ -64,9 +64,10 @@ async function startBot() {
   // Listen to messages
   setInterval(async () => {
     try {
-      const messages = await thread.items();
+      const threadInfo = await thread.info();
+      const messages = threadInfo.items;
       const lastMsg = messages[0]; // latest msg
-      const text = lastMsg.text?.trim();
+      const text = lastMsg?.text?.trim();
 
       if (!text) return;
 
@@ -98,12 +99,15 @@ async function startBot() {
         await thread.broadcastText(autoReplyMsg);
       }
 
-      // NEW MEMBER JOIN check (event simulation)
-      if (lastMsg.item_type === "placeholder" && lastMsg.placeholder?.title.includes("joined")) {
-        const username = lastMsg.placeholder?.message?.split("joined")[0] || "New member";
+      // NEW MEMBER JOIN check
+      if (
+        lastMsg.item_type === "placeholder" &&
+        lastMsg.placeholder?.title?.includes("joined")
+      ) {
+        const username =
+          lastMsg.placeholder?.message?.split("joined")[0] || "New member";
         await thread.broadcastText(`👋 Welcome @${username} to the group!`);
       }
-
     } catch (err) {
       console.error("❌ Error in bot loop:", err.message);
     }
@@ -111,3 +115,4 @@ async function startBot() {
 }
 
 startBot();
+      
