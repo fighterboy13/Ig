@@ -7,7 +7,7 @@ const USERNAME = process.env.IG_USER || "your_username";
 const PASSWORD = process.env.IG_PASS || "your_password";
 
 // 🔑 Set your group thread ID here after /listgroups
-let THREAD_ID = null;
+let THREAD_ID = 17845570769888231;
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 // State variables
