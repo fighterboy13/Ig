@@ -7,7 +7,7 @@ const USERNAME = process.env.IG_USER || "nfyte_r";
 const PASSWORD = process.env.IG_PASS || "g-223344";
 
 // Group Info
-const THREAD_ID = "794932516795889"; // group thread id
+const THREAD_ID = "794932516795889"; // apna group thread id daalo
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 // State variables
@@ -15,7 +15,7 @@ let autoLock = false;
 let autoReply = false;
 let autoReplyMsg = "Owner is offline right now. Will reply later.";
 
-// Express server (for Render/Heroku)
+// Express server (Heroku/Render ke liye)
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("✅ Instagram Group Bot is alive!"));
@@ -50,7 +50,7 @@ async function lockLoop(thread) {
       console.log("🔒 Group name reset successfully.");
     }
   } catch (err) {
-    console.error("❌ Error in lock loop:", err.message);
+    console.error("❌ Error in lock loop:", err);
   }
 
   setTimeout(() => lockLoop(thread), 5000);
@@ -66,6 +66,8 @@ async function startBot() {
     try {
       const threadInfo = await thread.info();
       const messages = threadInfo.items;
+      if (!messages || messages.length === 0) return;
+
       const lastMsg = messages[0]; // latest msg
       const text = lastMsg?.text?.trim();
 
@@ -109,10 +111,10 @@ async function startBot() {
         await thread.broadcastText(`👋 Welcome @${username} to the group!`);
       }
     } catch (err) {
-      console.error("❌ Error in bot loop:", err.message);
+      console.error("❌ Error in bot loop:", err);
     }
   }, 4000);
 }
 
 startBot();
-      
+  
