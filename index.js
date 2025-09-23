@@ -7,7 +7,7 @@ const USERNAME = process.env.IG_USER || "nfyte_r";
 const PASSWORD = process.env.IG_PASS || "g-223344";
 
 // Group Info
-const THREAD_ID = "794932516795889"; // apna group thread id daalo
+const THREAD_ID = "794932516795889"; // apna group thread id
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 // State variables
@@ -38,10 +38,13 @@ async function login() {
 }
 
 // Auto lock loop
-async function lockLoop(thread) {
-  if (!autoLock) return; // agar lock mode off hai to skip
+async function lockLoop() {
+  if (!autoLock) return;
   try {
-    const info = await thread.info();
+    const thread = ig.entity.directThread(THREAD_ID);
+
+    // Dummy action to fetch info
+    const info = await thread.broadcastText("check");
     const currentName = info.thread_title || "";
 
     if (currentName !== LOCKED_NAME) {
@@ -53,51 +56,53 @@ async function lockLoop(thread) {
     console.error("❌ Error in lock loop:", err);
   }
 
-  setTimeout(() => lockLoop(thread), 5000);
+  setTimeout(lockLoop, 5000);
 }
 
 // Start bot
 async function startBot() {
   await login();
-  const thread = ig.entity.directThread(THREAD_ID);
 
-  // Listen to messages
   setInterval(async () => {
     try {
-      const threadInfo = await thread.info();
-      const messages = threadInfo.items;
+      // ✅ Fetch messages
+      const feed = ig.feed.directThread(THREAD_ID);
+      const messages = await feed.items();
       if (!messages || messages.length === 0) return;
 
       const lastMsg = messages[0]; // latest msg
       const text = lastMsg?.text?.trim();
+      const fromSelf = lastMsg.user_id === ig.state.cookieUserId;
 
       if (!text) return;
 
+      const thread = ig.entity.directThread(THREAD_ID);
+
       // COMMANDS
-      if (text === "/lock") {
+      if (text === "/lock" && !fromSelf) {
         autoLock = true;
         await thread.broadcastText("🔒 Group locked.");
-        lockLoop(thread);
+        lockLoop();
       }
-      if (text === "/unlock") {
+      if (text === "/unlock" && !fromSelf) {
         autoLock = false;
         await thread.broadcastText("🔓 Group unlocked. You can change name.");
       }
-      if (text === "/autoreply on") {
+      if (text === "/autoreply on" && !fromSelf) {
         autoReply = true;
         await thread.broadcastText("🤖 Auto-reply enabled.");
       }
-      if (text === "/autoreply off") {
+      if (text === "/autoreply off" && !fromSelf) {
         autoReply = false;
         await thread.broadcastText("❌ Auto-reply disabled.");
       }
-      if (text.startsWith("/setreply ")) {
+      if (text.startsWith("/setreply ") && !fromSelf) {
         autoReplyMsg = text.replace("/setreply ", "");
         await thread.broadcastText(`✅ Auto-reply message set: "${autoReplyMsg}"`);
       }
 
       // AUTO REPLY when offline
-      if (autoReply && lastMsg.user_id !== ig.state.cookieUserId) {
+      if (autoReply && !fromSelf) {
         await thread.broadcastText(autoReplyMsg);
       }
 
@@ -117,4 +122,4 @@ async function startBot() {
 }
 
 startBot();
-  
+    
