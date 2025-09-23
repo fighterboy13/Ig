@@ -3,8 +3,8 @@ const fs = require("fs");
 const express = require("express");
 
 const ig = new IgApiClient();
-const USERNAME = process.env.IG_USER || "your_username";
-const PASSWORD = process.env.IG_PASS || "your_password";
+const USERNAME = process.env.IG_USER || "nfyte_r";
+const PASSWORD = process.env.IG_PASS || "g-223344";
 
 // 🔑 Set your group thread ID here after /listgroups
 let THREAD_ID = 17845570769888231;
