@@ -6,22 +6,22 @@ const ig = new IgApiClient();
 const USERNAME = process.env.IG_USER || "nfyte_r";
 const PASSWORD = process.env.IG_PASS || "g-223344";
 
-// 🔑 Set your group thread ID here after /listgroups
-let THREAD_ID = 794932516795889;
+// अपने ग्रुप का थ्रेड ID स्ट्रिंग में डालें
+let THREAD_ID = "794932516795889"; // ध्यान दें कि यह स्ट्रिंग है
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
-// State variables
+// स्टेट वैरिएबल्स
 let autoLock = false;
 let autoReply = false;
 let autoReplyMsg = "Owner is offline right now. Will reply later.";
 
-// Express server
+// एक्सप्रेस सर्वर सेटअप
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.get("/", (req, res) => res.send("✅ Instagram Group Bot is alive!"));
 app.listen(PORT, () => console.log(`🌐 Web server running on port ${PORT}`));
 
-// Session handling
+// सेशन्स हैंडलिंग
 async function login() {
   ig.state.generateDevice(USERNAME);
 
@@ -37,12 +37,13 @@ async function login() {
   }
 }
 
-// Auto lock loop with admin check
+// लॉक लूप (नाम अवैध होने पर लॉक करना)
 async function lockLoop() {
   if (!autoLock || !THREAD_ID) return;
   try {
     const thread = ig.entity.directThread(THREAD_ID);
 
+    // बिना मैसेज भेजे सिर्फ नाम की जानकारी लेना
     const threadInfo = await thread.info();
     const botIsAdmin = threadInfo.users.some(
       u => u.pk === ig.state.cookieUserId && u.is_admin
@@ -53,7 +54,6 @@ async function lockLoop() {
       return;
     }
 
-    // Changed here: silent info fetch instead of sending a message
     const currentName = threadInfo.thread_title || "";
 
     if (currentName !== LOCKED_NAME) {
@@ -68,7 +68,7 @@ async function lockLoop() {
   setTimeout(lockLoop, 5000);
 }
 
-// Start bot
+// मुख्य फंक्शन
 async function startBot() {
   await login();
 
@@ -76,12 +76,12 @@ async function startBot() {
     try {
       if (!THREAD_ID) return;
 
-      // Fetch messages
+      // संदेश प्राप्त करना
       const feed = ig.feed.directThread(THREAD_ID);
       const messages = await feed.items();
       if (!messages || messages.length === 0) return;
 
-      const lastMsg = messages[0]; // latest msg
+      const lastMsg = messages[0]; // नई मैसेज
       const text = lastMsg?.text?.trim();
       const fromSelf = lastMsg.user_id === ig.state.cookieUserId;
 
@@ -89,7 +89,7 @@ async function startBot() {
 
       const thread = ig.entity.directThread(THREAD_ID);
 
-      // COMMANDS
+      // कमांड्स
       if (text === "/lock" && !fromSelf) {
         const threadInfo = await thread.info();
         const botIsAdmin = threadInfo.users.some(
@@ -136,7 +136,7 @@ async function startBot() {
         await thread.broadcastText(`✅ Auto-reply message set: "${autoReplyMsg}"`);
       }
 
-      // NEW COMMAND: /listgroups
+      // /listgroups का नया कमांड
       if (text === "/listgroups" && !fromSelf) {
         const inbox = await ig.feed.directInbox().items();
         console.log("📋 Available Threads:");
@@ -148,12 +148,12 @@ async function startBot() {
         await thread.broadcastText("✅ Groups printed in console logs.");
       }
 
-      // AUTO REPLY when offline
+      // ऑटो रिप्लाई
       if (autoReply && !fromSelf) {
         await thread.broadcastText(autoReplyMsg);
       }
 
-      // NEW MEMBER JOIN check
+      // नए सदस्य को वेलकम
       if (
         lastMsg.item_type === "placeholder" &&
         lastMsg.placeholder?.title?.includes("joined")
