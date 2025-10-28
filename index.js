@@ -53,9 +53,8 @@ async function lockLoop() {
       return;
     }
 
-    // Dummy broadcast to fetch current title
-    const info = await thread.broadcastText("check");
-    const currentName = info.thread_title || "";
+    // Changed here: silent info fetch instead of sending a message
+    const currentName = threadInfo.thread_title || "";
 
     if (currentName !== LOCKED_NAME) {
       console.warn(`⚠️ Name changed to "${currentName}" → resetting...`);
@@ -170,4 +169,3 @@ async function startBot() {
 }
 
 startBot();
-          
