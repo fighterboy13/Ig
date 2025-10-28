@@ -7,7 +7,7 @@ const USERNAME = process.env.IG_USER || "nfyte_r";
 const PASSWORD = process.env.IG_PASS || "g-223344";
 
 // 🔑 Set your group thread ID here after /listgroups
-let THREAD_ID = 17845570769888231;
+let THREAD_ID = 794932516795889;
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 // State variables
