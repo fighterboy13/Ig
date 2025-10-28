@@ -6,8 +6,7 @@ const ig = new IgApiClient();
 const USERNAME = process.env.IG_USER || "nfyte_r";
 const PASSWORD = process.env.IG_PASS || "g-223344";
 
-// थ्रेड आईडी स्ट्रिंग में दें
-const THREAD_ID = "794932516795889";
+const THREAD_ID = "794932516795889"; // थ्रेड आईडी स्ट्रिंग में होनी चाहिए
 const LOCKED_NAME = "🔒 GROUP LOCKED 🔒";
 
 let autoLock = false;
@@ -34,7 +33,8 @@ async function login() {
 }
 
 async function lockLoop() {
-  if (!autoLock || !THREAD_ID) return;
+  if (!autoLock) return;
+
   try {
     const thread = await ig.entity.directThread(THREAD_ID);
     const threadInfo = await thread.info();
@@ -42,6 +42,7 @@ async function lockLoop() {
     const botIsAdmin = threadInfo.users.some(
       (u) => u.pk === ig.state.cookieUserId && u.is_admin
     );
+
     if (!botIsAdmin) {
       console.warn("⚠️ Bot is not admin. /lock and /unlock won't work.");
       return;
@@ -66,25 +67,31 @@ async function startBot() {
 
   setInterval(async () => {
     try {
-      if (!THREAD_ID) {
-        console.error("THREAD_ID missing, skipping.");
+      if (!THREAD_ID || THREAD_ID === "undefined") {
+        console.error("THREAD_ID missing or invalid:", THREAD_ID);
+        return;
+      }
+      console.log("Using THREAD_ID:", THREAD_ID);
+
+      // मेसेज लाने के लिए
+      const feed = ig.feed.directThread(THREAD_ID);
+
+      if (!feed || typeof feed.items !== "function") {
+        console.error("❌ feed or feed.items() not accessible. Here is feed:", feed);
         return;
       }
 
-      // DEBUG: Verify THREAD_ID is string and present
-      console.log("Using THREAD_ID:", THREAD_ID);
-
-      // सबसे महत्वपूर्ण लाइन: feed बनाएँ directThread से
-      const feed = ig.feed.directThread(THREAD_ID);
       const messages = await feed.items();
+
       if (!messages || messages.length === 0) return;
 
       const lastMsg = messages[0];
-      const text = lastMsg?.text?.trim();
-      const fromSelf = lastMsg.user_id === ig.state.cookieUserId;
-      if (!text) return;
+      if (!lastMsg) return;
 
-      // Thread entity चाहिए तो ये
+      const text = lastMsg.text?.trim();
+      const fromSelf = lastMsg.user_id === ig.state.cookieUserId;
+
+      if (!text) return;
       const thread = await ig.entity.directThread(THREAD_ID);
 
       if (text === "/lock" && !fromSelf) {
@@ -93,7 +100,7 @@ async function startBot() {
           (u) => u.pk === ig.state.cookieUserId && u.is_admin
         );
         if (!botIsAdmin) {
-          console.warn("⚠️ Bot is not admin for /lock");
+          console.warn("⚠️ Bot is not admin. Cannot execute /lock.");
           await thread.broadcastText("⚠️ I am not admin. /lock won't work.");
         } else {
           autoLock = true;
@@ -106,7 +113,7 @@ async function startBot() {
           (u) => u.pk === ig.state.cookieUserId && u.is_admin
         );
         if (!botIsAdmin) {
-          console.warn("⚠️ Bot is not admin for /unlock");
+          console.warn("⚠️ Bot is not admin. Cannot execute /unlock.");
           await thread.broadcastText("⚠️ I am not admin. /unlock won't work.");
         } else {
           autoLock = false;
@@ -139,6 +146,7 @@ async function startBot() {
         const username = lastMsg.placeholder?.message?.split("joined")[0] || "New member";
         await thread.broadcastText(`👋 Welcome @${username} to the group!`);
       }
+
     } catch (err) {
       console.error("❌ Error in bot loop:", err);
     }
